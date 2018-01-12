@@ -14,7 +14,7 @@ class Debugger:
         creation_flags = DEBUG_PROCESS
 
         startup_info = STARTUPINFO()
-        process_info = PROCESS_INFOMATION()
+        process_info = PROCESS_INFORMATION()
 
         startup_info.dwFlags = 0x1
         startup_info.wShowWindow = 0x0
@@ -46,12 +46,16 @@ class Debugger:
         if kernel32.DebugActiveProcess(pid):
             self.debugger_active = True
             self.pid = int(pid)
+        else:
+            print("unable to attach")
 
     def run(self):
-        pass
+        while self.debugger_active:
+            self.get_debug_event()
 
     def get_debug_event(self):
-        pass
+        debug_event = DEBUG_EVENT()
+        continue_status = DBG_CONTINUE
 
     def detach(self):
         pass
