@@ -1,4 +1,4 @@
 import mydbg
 
 dbg = mydbg.Debugger()
-dbg.load("C:\\WINDOWS\\system32\\calc.exe")
+dbg.load(b"C:\\Windows\\System32\\calc.exe")
