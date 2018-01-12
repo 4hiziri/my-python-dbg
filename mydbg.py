@@ -6,9 +6,11 @@ kernel32 = windll.kernel32
 
 class Debugger:
     def __init__(self):
-        pass
+        self.h_process = None
+        self.debugger_active = False
+        self.pid = int(-1)
 
-    def load(self, debugee_path):
+    def load(self, debuggee_path):
         creation_flags = DEBUG_PROCESS
 
         startup_info = STARTUPINFO()
@@ -19,7 +21,7 @@ class Debugger:
 
         startup_info.cb = sizeof(startup_info)
 
-        if kernel32.CreateProcessA(debugee_path,
+        if kernel32.CreateProcessA(debuggee_path,
                                    None,
                                    None,
                                    None,
@@ -31,5 +33,25 @@ class Debugger:
                                    byref(process_info)):
             print("launch process")
             print("pid: {}".format(process_info.dwProcessId))
+            self.h_process = self.open_process(process_info.dwProcessId)
         else:
             print("error: {}".format(kernel32.GetLastError()))
+
+    def open_process(self, pid):
+        return kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, pid)
+
+    def attach(self, pid):
+        self.h_process = self.open_process(pid)
+
+        if kernel32.DebugActiveProcess(pid):
+            self.debugger_active = True
+            self.pid = int(pid)
+
+    def run(self):
+        pass
+
+    def get_debug_event(self):
+        pass
+
+    def detach(self):
+        pass
