@@ -58,8 +58,6 @@ class Debugger:
         continue_status = DBG_CONTINUE
 
         if kernel32.WaitForDebugEvent(byref(debug_event), INFINITE):
-            input("press any key to continue...")
-            self.debugger_active = False
             kernel32.ContinueDebugEvent(debug_event.dwProcessId,
                                         debug_event.dwThreadId,
                                         continue_status)
