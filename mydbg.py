@@ -71,3 +71,46 @@ class Debugger:
         else:
             print("Detach Error")
             return False
+
+    def open_thread(self, thread_id):
+        h_thread = kernel32.OpenThread(THREAD_ALL_ACCESS, None, thread_id)
+
+        if h_thread is not 0:
+            return h_thread
+        else:
+            print("OpenThread Error")
+            return None
+
+    def enumerate_threads(self):
+        snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, self.pid)
+
+        if snapshot is None:
+            return None
+
+        thread_entry = THREADENTRY32()
+        thread_entry.dwSize = sizeof(thread_entry)
+        thread_list = []
+
+        if kernel32.Thread32First(snapshot, byref(thread_entry)):
+            if thread_entry.th32OwnerProcessID == self.pid:
+                thread_list.append(thread_entry.th32ThreadID)
+
+            while kernel32.Thread32Next(snapshot, byref(thread_entry)):
+                if thread_entry.th32OwnerProcessID == self.pid:
+                    thread_list.append(thread_entry.th32ThreadID)
+
+        kernel32.CloseHandle(snapshot)
+        return thread_list
+
+    def get_thread_context(self, thread_id=None, h_thread=None):
+        context = CONTEXT()
+        context.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
+
+        if h_thread is None:
+            h_thread = self.open_thread(thread_id)
+
+        if kernel32.GetThreadContext(h_thread, byref(context)):
+            kernel32.CloseHandle(h_thread)
+            return context
+        else:
+            return None
