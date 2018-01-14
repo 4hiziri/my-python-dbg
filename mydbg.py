@@ -63,8 +63,7 @@ class Debugger:
             self.h_thread = self.open_thread(debug_event.dwThreadId)
             self.context = self.get_thread_context(h_thread=self.h_thread)
 
-            print("Event Code: {}".format(debug_event.dwDebugEventCode))
-            print("Thread ID: {}".format(debug_event.dwThreadId))
+            print("Event Code = {}, Thread ID = {}".format(debug_event.dwDebugEventCode, debug_event.dwThreadId))
 
             kernel32.ContinueDebugEvent(debug_event.dwProcessId,
                                         debug_event.dwThreadId,
