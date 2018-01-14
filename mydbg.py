@@ -7,6 +7,8 @@ kernel32 = windll.kernel32
 class Debugger:
     def __init__(self):
         self.h_process = None
+        self.h_thread = None
+        self.context = None
         self.debugger_active = False
         self.pid = int(-1)
 
@@ -58,6 +60,12 @@ class Debugger:
         continue_status = DBG_CONTINUE
 
         if kernel32.WaitForDebugEvent(byref(debug_event), INFINITE):
+            self.h_thread = self.open_thread(debug_event.dwThreadId)
+            self.context = self.get_thread_context(h_thread=self.h_thread)
+
+            print("Event Code: {}".format(debug_event.dwDebugEventCode))
+            print("Thread ID: {}".format(debug_event.dwThreadId))
+
             kernel32.ContinueDebugEvent(debug_event.dwProcessId,
                                         debug_event.dwThreadId,
                                         continue_status)
