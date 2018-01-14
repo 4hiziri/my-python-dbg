@@ -21,4 +21,5 @@ for thread in threads:
     print("EDX: {}".format(thread_context.Edx))
     print('-----------------------------------')
 
+dbg.run()
 dbg.detach()
