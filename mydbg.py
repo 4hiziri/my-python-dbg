@@ -12,6 +12,7 @@ class Debugger:
         self.debugger_active = False
         self.pid = int(-1)
         self.exception_address = None
+        self.software_breakpoints = {}
 
     def load(self, debuggee_path):
         creation_flags = DEBUG_PROCESS
@@ -66,7 +67,7 @@ class Debugger:
 
             print("Event Code = {}, Thread ID = {}".format(debug_event.dwDebugEventCode, debug_event.dwThreadId))
 
-            if debug_event.dwDebugEvntCode == EXCEPTION_DEBUG_EVENT:
+            if debug_event.dwDebugEventCode == EXCEPTION_DEBUG_EVENT:
                 exception = debug_event.u.Exception.ExceptionRecord.ExceptionCode
                 self.exception_address = debug_event.u.Exception.ExceptionRecord.ExceptionAddress
 
@@ -138,3 +139,48 @@ class Debugger:
         print("Inside breakpoint handler")
         print("Exception addr: 0x{:X}".format(self.exception_address))
         return DBG_CONTINUE
+
+    def read_process_memory(self, address, length):
+        read_buf = create_string_buffer(length)
+        count = c_ulong(0)
+
+        if kernel32.ReadProcessMemory(self.h_process,
+                                      address,
+                                      read_buf,
+                                      length,
+                                      byref(count)):
+            return read_buf.raw
+        else:
+            return False
+
+    def write_process_memory(self, address, data):
+        count = c_ulong(0)
+        length = len(data)
+
+        c_data = c_char_p(data[count.value:])
+
+        if kernel32.WriteProcessMemory(self.h_process,
+                                       address,
+                                       c_data,
+                                       length,
+                                       byref(count)):
+            return True
+        else:
+            return False
+
+    def bp_set_sw(self, address):
+        print("Set breakpoint at: 0x{:X}".format(address))
+        if address not in self.software_breakpoints:
+            try:
+                original_byte = self.read_process_memory(address, 1)
+                self.write_process_memory(address, "\xCC")
+                self.software_breakpoints[address] = (original_byte)
+            except Exception as e:
+                print(e)
+                return False
+
+    def func_resolve(self, dll, func):
+        handle = kernel32.GetModuleHandleA(dll)
+        address = kernel32.GetProcAddress(handle, func)
+        kernel32.CloseHandle(handle)
+        return address
