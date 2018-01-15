@@ -4,6 +4,7 @@ from ctypes import *
 BYTE = c_ubyte
 WORD = c_ushort
 DWORD = c_ulong
+DWORD64 = c_uint64
 LPBYTE = POINTER(c_ubyte)
 LPTSTR = POINTER(c_char)
 HANDLE = c_void_p
@@ -249,6 +250,108 @@ class CONTEXT(Structure):
         ("ExtendedRegisters", BYTE * 512),
     ]
 
+
+# for 64bit environment CONTEXT
+class M128A(Structure):
+    _fields_ = [
+        ("Low", DWORD64),
+        ("High", DWORD64)
+    ]
+
+
+class XMM_SAVE_AREA32(Structure):
+    _pack_ = 1
+    _fields_ = [
+        ('ControlWord', WORD),
+        ('StatusWord', WORD),
+        ('TagWord', BYTE),
+        ('Reserved1', BYTE),
+        ('ErrorOpcode', WORD),
+        ('ErrorOffset', DWORD),
+        ('ErrorSelector', WORD),
+        ('Reserved2', WORD),
+        ('DataOffset', DWORD),
+        ('DataSelector', WORD),
+        ('Reserved3', WORD),
+        ('MxCsr', DWORD),
+        ('MxCsr_Mask', DWORD),
+        ('FloatRegisters', M128A * 8),
+        ('XmmRegisters', M128A * 16),
+        ('Reserved4', BYTE * 96)
+    ]
+
+
+class DUMMYSTRUCTNAME(Structure):
+    _fields_ = [
+        ("Header", M128A * 2),
+        ("Legacy", M128A * 8),
+        ("Xmm0", M128A),
+        ("Xmm1", M128A),
+        ("Xmm2", M128A),
+        ("Xmm3", M128A),
+        ("Xmm4", M128A),
+        ("Xmm5", M128A),
+        ("Xmm6", M128A),
+        ("Xmm7", M128A),
+        ("Xmm8", M128A),
+        ("Xmm9", M128A),
+        ("Xmm10", M128A),
+        ("Xmm11", M128A),
+        ("Xmm12", M128A),
+        ("Xmm13", M128A),
+        ("Xmm14", M128A),
+        ("Xmm15", M128A)
+    ]
+
+
+class CONTEXT64(Structure):
+    _fields_ = [
+        # reg parameter home address
+        ('P1Home', DWORD64),
+        ('P2Home', DWORD64),
+        ('P3Home', DWORD64),
+        ('P4Home', DWORD64),
+        ('P5Home', DWORD64),
+        ('P6Home', DWORD64),
+        # control flags
+        ('ContextFlags', DWORD),
+        ('MxCsr', DWORD),
+        # segment regs
+        ('SegCs', WORD),
+        ('SegDs', WORD),
+        ('SegEs', WORD),
+        ('SegFs', WORD),
+        ('SegGs', WORD),
+        ('SegSs', WORD),
+        # processor flgas
+        ('EFlags', DWORD),
+        # debug register
+        ('Dr0', DWORD64),
+        ('Dr1', DWORD64),
+        ('Dr2', DWORD64),
+        ('Dr3', DWORD64),
+        ('Dr6', DWORD64),
+        ('Dr7', DWORD64),
+        # int regs
+        ('Rax', DWORD64),
+        ('Rcx', DWORD64),
+        ('Rdx', DWORD64),
+        ('Rbx', DWORD64),
+        ('Rsp', DWORD64),
+        ('Rbp', DWORD64),
+        ('R8', DWORD64),
+        ('R9', DWORD64),
+        ('R10', DWORD64),
+        ('R11', DWORD64),
+        ('R12', DWORD64),
+        ('R13', DWORD64),
+        ('R14', DWORD64),
+        ('R15', DWORD64),
+        # program counter
+        ('Rip', DWORD64),
+        # floating point state
+
+    ]
 
 # THREADENTRY32 contains information about a thread
 # we use this for enumerating all of the system threads
