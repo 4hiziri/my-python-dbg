@@ -13,6 +13,8 @@ class Debugger:
         self.pid = int(-1)
         self.exception_address = None
         self.software_breakpoints = {}
+        self.first_breakpoint = True
+        self.hardware_breakpoints = {}
 
     def load(self, debuggee_path):
         creation_flags = DEBUG_PROCESS
@@ -78,7 +80,7 @@ class Debugger:
                 elif exception == EXCEPTION_GUARD_PAGE:
                     print("Guard Page Access Detected")
                 elif exception == EXCEPTION_SINGLE_STEP:
-                    print("Signal stepping")
+                    continue_status = self.exception_handler_single_step()
 
             kernel32.ContinueDebugEvent(debug_event.dwProcessId,
                                         debug_event.dwThreadId,
@@ -140,6 +142,24 @@ class Debugger:
         print("Exception addr: 0x{:X}".format(self.exception_address))
         return DBG_CONTINUE
 
+    def exception_handler_single_step(self):
+        if self.context.Dr6 & 0x1 and 0 in self.hardware_breakpoints:
+            slot = 0
+        elif self.context.Dr6 & 0x2 and 1 in self.hardware_breakpoints:
+            slot = 1
+        elif self.context.Dr6 & 0x4 and 2 in self.hardware_breakpoints:
+            slot = 2
+        elif self.context.Dr6 and 3 in self.hardware_breakpoints:
+            slot = 3
+        else:
+            continue_status = DBG_EXCEPTION_NOT_HANDLED
+
+        if self.bp_set_hw(slot):
+            continue_status = DBG_CONTINUE
+
+        print('[*] Hardware breakpoint removed.')
+        return continue_status
+
     def read_process_memory(self, address, length):
         read_buf = create_string_buffer(length)
         count = c_ulong(0)
@@ -184,3 +204,77 @@ class Debugger:
         address = kernel32.GetProcAddress(handle, func)
         kernel32.CloseHandle(handle)
         return address
+
+    def bp_set_hw(self, address, length, condition):
+        if length not in (1, 2, 4):
+            return False
+
+        length -= 1
+
+        if condition not in (HW_ACCESS, HW_EXECUTE, HW_WRITE):
+            return False
+
+        if 0 not in self.hardware_breakpoints:
+            available = 0
+        elif 1 not in self.hardware_breakpoints:
+            available = 1
+        elif 2 not in self.hardware_breakpoints:
+            available = 2
+        elif 3 not in self.hardware_breakpoints:
+            available = 3
+        else:
+            return False
+
+        for thread_id in self.enumerate_threads():
+            context = self.get_thread_context(thread_id=thread_id)
+
+            context.Dr7 |= 1 << (available * 2)
+
+            if available == 0:
+                context.Dr0 = address
+            elif available == 1:
+                context.Dr1 = address
+            elif available == 2:
+                context.Dr2 = address
+            elif available == 3:
+                context.Dr3 = address
+
+            # set type of breakpoint
+            context.Dr7 |= condition << ((available * 4) + 16)
+            context.Dr7 |= length << ((available * 4) + 18)
+
+            h_thread = self.open_thread(thread_id)
+            kernel32.SetThreadContext(h_thread, byref(context))
+
+        self.hardware_breakpoints[available] = (address, length, condition)
+
+        return True
+
+    def bp_del_hw(self, slot):
+        # delete all breakpoints
+        for thread_id in self.enumerate_threads():
+            context = self.get_thread_context(thread_id=thread_id)
+
+            context.Dr7 &= ~(1 << (slot * 2))
+
+            if slot == 0:
+                context.Dr0 = 0x0
+            elif slot == 1:
+                context.Dr1 = 0x0
+            elif slot == 2:
+                context.Dr2 = 0x0
+            elif slot == 3:
+                context.Dr3 = 0x0
+
+            # clear condition
+            context.Dr7 &= ~(3 << ((slot * 4) + 16))
+            # clear length flag
+            context.Dr7 &= ~(3 << ((slot * 4) + 18))
+
+            # set context which has no breakpoints
+            h_thread = self.open_thread(thread_id)
+            kernel32.SetThreadContext(h_thread, byref(context))
+
+        del self.hardware_breakpoints[slot]
+
+        return True
