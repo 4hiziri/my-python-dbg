@@ -123,7 +123,7 @@ class Debugger:
         return thread_list
 
     def get_thread_context(self, thread_id=None, h_thread=None):
-        context = CONTEXT()
+        context = CONTEXT64()
         context.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
 
         if h_thread is None:
