@@ -1,4 +1,5 @@
 import mydbg
+from mydbgclasses import HW_EXECUTE
 
 dbg = mydbg.Debugger()
 # dbg.load(b"C:\\Windows\\System32\\calc.exe")
@@ -10,6 +11,7 @@ printf_addr = dbg.func_resolve(b"msvcrt.dll", b"printf")
 print(printf_addr)
 print("printf addr: {:X}".format(printf_addr))
 dbg.bp_set_sw(printf_addr)
+dbg.bp_set_hw(printf_addr, 1, HW_EXECUTE)
 
 threads = dbg.enumerate_threads()
 
